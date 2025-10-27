@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { AnimatePresence } from 'framer-motion'
 import { AuthProvider } from './contexts/AuthContext'
 import { LanguageProvider } from './contexts/LanguageContext'
+import { CartProvider } from './contexts/CartContext'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import AnimatedBackground from './components/AnimatedBackground'
@@ -17,6 +18,8 @@ import Treatment from './pages/Treatment'
 import NutrientAdvisory from './pages/NutrientAdvisory'
 import Chatbot from './pages/Chatbot'
 import Marketplace from './pages/Marketplace'
+import Cart from './pages/Cart'
+import Checkout from './pages/Checkout'
 import PestAlert from './pages/PestAlert'
 import MyReports from './pages/MyReports'
 import ReportDetails from './pages/ReportDetails'
@@ -38,6 +41,8 @@ function AppContent() {
               
               {/* Public Routes */}
               <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/checkout" element={<Checkout />} />
               <Route path="/nutrient-advisory" element={<NutrientAdvisory />} />
               
               {/* Protected Routes */}
@@ -76,7 +81,9 @@ function App() {
     <Router>
       <AuthProvider>
         <LanguageProvider>
-          <AppContent />
+          <CartProvider>
+            <AppContent />
+          </CartProvider>
         </LanguageProvider>
       </AuthProvider>
     </Router>

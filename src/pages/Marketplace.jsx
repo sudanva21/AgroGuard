@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { ShoppingCart, Search, Filter, Star, Shield, Truck, Package } from 'lucide-react'
+import { ShoppingCart, Search, Filter, Star, Shield, Truck, Package, Check } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import TranslatedText from '../components/TranslatedText'
+import { useCart } from '../contexts/CartContext'
 
 const Marketplace = () => {
   const [searchParams] = useSearchParams()
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [addedToCart, setAddedToCart] = useState({})
   const productsRef = useRef(null)
+  const { addToCart } = useCart()
   
   // Read search query from URL params on mount
   useEffect(() => {
@@ -45,13 +48,13 @@ const Marketplace = () => {
       reviews: 234,
       verified: true,
       inStock: true,
-      image: '🌱',
+      image: 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?w=400&h=300&fit=crop',
       supplier: 'National Seeds Corporation',
       description: 'High-yielding hybrid variety, disease resistant'
     },
     {
       id: 2,
-      name: 'Mancozeb 75% WP',
+      name: 'Mancozeb 75% WP Fungicide',
       category: 'pesticides',
       price: 450,
       unit: '1kg',
@@ -59,7 +62,7 @@ const Marketplace = () => {
       reviews: 456,
       verified: true,
       inStock: true,
-      image: '🧪',
+      image: 'https://images.unsplash.com/photo-1616401784845-180882ba9ba8?w=400&h=300&fit=crop',
       supplier: 'Bayer CropScience',
       description: 'Broad spectrum fungicide, govt approved'
     },
@@ -73,7 +76,7 @@ const Marketplace = () => {
       reviews: 189,
       verified: true,
       inStock: true,
-      image: '💧',
+      image: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=400&h=300&fit=crop',
       supplier: 'Coromandel International',
       description: 'Complete balanced nutrition for all crops'
     },
@@ -87,13 +90,13 @@ const Marketplace = () => {
       reviews: 567,
       verified: true,
       inStock: true,
-      image: '🌿',
+      image: 'https://images.unsplash.com/photo-1582794543139-8ac9cb0f7b11?w=400&h=300&fit=crop',
       supplier: 'Neem India',
       description: 'Organic pest control, safe for environment'
     },
     {
       id: 5,
-      name: 'Urea 46% N',
+      name: 'Urea 46% N Fertilizer',
       category: 'fertilizers',
       price: 280,
       unit: '50kg',
@@ -101,7 +104,7 @@ const Marketplace = () => {
       reviews: 892,
       verified: true,
       inStock: true,
-      image: '⚗️',
+      image: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=400&h=300&fit=crop',
       supplier: 'IFFCO',
       description: 'High nitrogen content, quick acting'
     },
@@ -115,7 +118,7 @@ const Marketplace = () => {
       reviews: 145,
       verified: true,
       inStock: true,
-      image: '🔧',
+      image: 'https://images.unsplash.com/photo-1625047509168-a7026f36de04?w=400&h=300&fit=crop',
       supplier: 'KisanKraft',
       description: 'Rechargeable, 4-6 hours backup'
     },
@@ -129,7 +132,7 @@ const Marketplace = () => {
       reviews: 678,
       verified: true,
       inStock: true,
-      image: '🌾',
+      image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&h=300&fit=crop',
       supplier: 'Punjab Agricultural University',
       description: 'High yielding variety, drought tolerant'
     },
@@ -143,9 +146,177 @@ const Marketplace = () => {
       reviews: 423,
       verified: true,
       inStock: true,
-      image: '🪱',
+      image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=300&fit=crop',
       supplier: 'Green Gold Organics',
       description: 'Rich in beneficial microbes, improves soil'
+    },
+    {
+      id: 9,
+      name: 'Hybrid Corn Seeds (Pioneer)',
+      category: 'seeds',
+      price: 650,
+      unit: '500g',
+      rating: 4.7,
+      reviews: 321,
+      verified: true,
+      inStock: true,
+      image: 'https://images.unsplash.com/photo-1551453062-41d3e6adc9e6?w=400&h=300&fit=crop',
+      supplier: 'Pioneer Seeds',
+      description: 'High yield, excellent disease resistance'
+    },
+    {
+      id: 10,
+      name: 'Bio-Pesticide (Trichoderma)',
+      category: 'pesticides',
+      price: 350,
+      unit: '1kg',
+      rating: 4.5,
+      reviews: 276,
+      verified: true,
+      inStock: true,
+      image: 'https://images.unsplash.com/photo-1601575434663-7350b6ccaaa3?w=400&h=300&fit=crop',
+      supplier: 'BioControl India',
+      description: 'Biological fungicide, eco-friendly solution'
+    },
+    {
+      id: 11,
+      name: 'Drip Irrigation Kit',
+      category: 'tools',
+      price: 3500,
+      unit: 'set',
+      rating: 4.6,
+      reviews: 198,
+      verified: true,
+      inStock: true,
+      image: 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?w=400&h=300&fit=crop',
+      supplier: 'Jain Irrigation',
+      description: 'Complete drip system for 1 acre'
+    },
+    {
+      id: 12,
+      name: 'Rice Seeds (Pusa Basmati)',
+      category: 'seeds',
+      price: 120,
+      unit: '1kg',
+      rating: 4.8,
+      reviews: 542,
+      verified: true,
+      inStock: true,
+      image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&h=300&fit=crop',
+      supplier: 'IARI Delhi',
+      description: 'Premium basmati variety, aromatic'
+    },
+    {
+      id: 13,
+      name: 'Humic Acid Liquid',
+      category: 'fertilizers',
+      price: 550,
+      unit: '1L',
+      rating: 4.7,
+      reviews: 167,
+      verified: true,
+      inStock: true,
+      image: 'https://images.unsplash.com/photo-1599255723323-8f70f3ac48e2?w=400&h=300&fit=crop',
+      supplier: 'Agro Solutions',
+      description: 'Enhances soil health and nutrient uptake'
+    },
+    {
+      id: 14,
+      name: 'Garden Pruning Shears',
+      category: 'tools',
+      price: 450,
+      unit: 'piece',
+      rating: 4.4,
+      reviews: 89,
+      verified: true,
+      inStock: true,
+      image: 'https://images.unsplash.com/photo-1617634667039-8e3033a9b9d0?w=400&h=300&fit=crop',
+      supplier: 'Gardening Pro',
+      description: 'Sharp stainless steel, ergonomic handle'
+    },
+    {
+      id: 15,
+      name: 'Sulphur 80% WDG',
+      category: 'pesticides',
+      price: 380,
+      unit: '1kg',
+      rating: 4.6,
+      reviews: 234,
+      verified: true,
+      inStock: true,
+      image: 'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?w=400&h=300&fit=crop',
+      supplier: 'UPL Limited',
+      description: 'Controls powdery mildew, safe for crops'
+    },
+    {
+      id: 16,
+      name: 'Vegetable Seeds Combo Pack',
+      category: 'seeds',
+      price: 299,
+      unit: 'pack',
+      rating: 4.5,
+      reviews: 412,
+      verified: true,
+      inStock: true,
+      image: 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=400&h=300&fit=crop',
+      supplier: 'Garden Delight',
+      description: '10 varieties pack - seasonal vegetables'
+    },
+    {
+      id: 17,
+      name: 'Potash Fertilizer (MOP)',
+      category: 'fertilizers',
+      price: 720,
+      unit: '25kg',
+      rating: 4.5,
+      reviews: 345,
+      verified: true,
+      inStock: true,
+      image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400&h=300&fit=crop',
+      supplier: 'ICL Fertilizers',
+      description: 'Improves fruit quality and disease resistance'
+    },
+    {
+      id: 18,
+      name: 'Solar Insect Trap',
+      category: 'tools',
+      price: 1800,
+      unit: 'piece',
+      rating: 4.7,
+      reviews: 156,
+      verified: true,
+      inStock: true,
+      image: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop',
+      supplier: 'EcoTech Solutions',
+      description: 'Chemical-free pest control, solar powered'
+    },
+    {
+      id: 19,
+      name: 'Micronutrient Mix',
+      category: 'fertilizers',
+      price: 420,
+      unit: '1kg',
+      rating: 4.8,
+      reviews: 267,
+      verified: true,
+      inStock: true,
+      image: 'https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?w=400&h=300&fit=crop',
+      supplier: 'Nutrient Plus',
+      description: 'Complete micronutrient formula - Zn, Fe, Mn, Cu'
+    },
+    {
+      id: 20,
+      name: 'Mulching Paper Roll',
+      category: 'tools',
+      price: 890,
+      unit: '100m',
+      rating: 4.3,
+      reviews: 92,
+      verified: true,
+      inStock: true,
+      image: 'https://images.unsplash.com/photo-1580328291854-f10e0b1cfed2?w=400&h=300&fit=crop',
+      supplier: 'Agro Plastic Ltd',
+      description: 'Biodegradable, controls weeds, retains moisture'
     }
   ]
 
@@ -218,8 +389,15 @@ const Marketplace = () => {
             {filteredProducts.map((product) => (
               <div key={product.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 group">
                 {/* Product Image */}
-                <div className="bg-gradient-to-br from-agro-green-50 to-agro-green-100 h-48 flex items-center justify-center text-6xl group-hover:scale-105 transition-transform">
-                  {product.image}
+                <div className="bg-gradient-to-br from-agro-green-50 to-agro-green-100 h-48 overflow-hidden">
+                  <img 
+                    src={product.image} 
+                    alt={product.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/400x300/10b981/ffffff?text=' + encodeURIComponent(product.category)
+                    }}
+                  />
                 </div>
 
                 {/* Product Info */}
@@ -280,10 +458,28 @@ const Marketplace = () => {
                   {/* Add to Cart Button */}
                   <button
                     disabled={!product.inStock}
-                    className="w-full btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => {
+                      addToCart(product)
+                      setAddedToCart(prev => ({ ...prev, [product.id]: true }))
+                      setTimeout(() => {
+                        setAddedToCart(prev => ({ ...prev, [product.id]: false }))
+                      }, 2000)
+                    }}
+                    className={`w-full btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
+                      addedToCart[product.id] ? 'bg-green-600 hover:bg-green-700' : ''
+                    }`}
                   >
-                    <ShoppingCart className="w-4 h-4" />
-                    <span><TranslatedText>Add to Cart</TranslatedText></span>
+                    {addedToCart[product.id] ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span><TranslatedText>Added!</TranslatedText></span>
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="w-4 h-4" />
+                        <span><TranslatedText>Add to Cart</TranslatedText></span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>

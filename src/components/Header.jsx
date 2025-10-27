@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Menu, X, Sprout, Languages, LogOut, User, Globe } from 'lucide-react'
+import { Menu, X, Sprout, Languages, LogOut, User, Globe, ShoppingCart } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { useCart } from '../contexts/CartContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import TranslatedText from './TranslatedText'
@@ -9,8 +10,10 @@ import TranslatedText from './TranslatedText'
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { user, signOut } = useAuth()
+  const { getCartCount } = useCart()
   const { currentLanguage, changeLanguage, isTranslating } = useLanguage()
   const navigate = useNavigate()
+  const cartCount = getCartCount()
 
   const languages = ['English', 'हिंदी', 'मराठी', 'தமிழ்', 'తెలుగు', 'ಕನ್ನಡ', 'বাংলা', 'ગુજરાતી', 'ਪੰਜਾਬੀ', 'മലയാളം']
 
@@ -60,8 +63,18 @@ const Header = () => {
             )}
           </nav>
 
-          {/* Language Selector & Auth Buttons */}
+          {/* Cart Icon, Language Selector & Auth Buttons */}
           <div className="hidden lg:flex items-center space-x-4">
+            {/* Cart Icon */}
+            <Link to="/cart" className="relative p-2 text-gray-700 hover:text-agro-green-600 transition">
+              <ShoppingCart className="w-6 h-6" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+            
             <div className="relative group">
               <button className="flex items-center space-x-2 text-gray-700 hover:text-agro-green-600 transition">
                 <Globe className="w-5 h-5" />
@@ -117,13 +130,23 @@ const Header = () => {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="lg:hidden text-gray-700 hover:text-agro-green-600"
-          >
-            {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          {/* Mobile Cart Icon & Menu Button */}
+          <div className="lg:hidden flex items-center space-x-4">
+            <Link to="/cart" className="relative p-2 text-gray-700 hover:text-agro-green-600 transition">
+              <ShoppingCart className="w-6 h-6" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="text-gray-700 hover:text-agro-green-600"
+            >
+              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu */}
