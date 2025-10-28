@@ -1,14 +1,16 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CreditCard, MapPin, User, Phone, Mail, CheckCircle, ArrowLeft, AlertCircle } from 'lucide-react'
 import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
+import { useDialog } from '../contexts/DialogContext'
 import { initiateRazorpayPayment, getTestCardDetails } from '../services/razorpayService'
 import TranslatedText from '../components/TranslatedText'
 
 const Checkout = () => {
   const { cartItems, getCartTotal, clearCart } = useCart()
   const { user } = useAuth()
+  const { showAlert } = useDialog()
   const navigate = useNavigate()
   const [paymentSuccess, setPaymentSuccess] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -28,6 +30,18 @@ const Checkout = () => {
 
   const deliveryCharge = getCartTotal() >= 500 ? 0 : 50
   const totalAmount = getCartTotal() + deliveryCharge
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!user) {
+      showAlert({
+        title: 'Login Required',
+        message: 'Please login to proceed with checkout and complete your purchase.',
+        type: 'warning',
+        onClose: () => navigate('/login')
+      })
+    }
+  }, [user, navigate, showAlert])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -101,7 +115,11 @@ const Checkout = () => {
     } catch (error) {
       console.error('Payment error:', error)
       setIsProcessing(false)
-      alert(error.message || 'Payment failed. Please try again.')
+      showAlert({
+        title: 'Payment Failed',
+        message: error.message || 'Payment failed. Please try again.',
+        type: 'error'
+      })
     }
   }
 
@@ -128,7 +146,11 @@ const Checkout = () => {
         onFailure: (error) => {
           console.error('Razorpay payment failed:', error)
           setIsProcessing(false)
-          alert('Payment failed: ' + error.message)
+          showAlert({
+            title: 'Payment Failed',
+            message: 'Payment failed: ' + error.message,
+            type: 'error'
+          })
         }
       })
     } catch (error) {

@@ -4,6 +4,7 @@ import { AnimatePresence } from 'framer-motion'
 import { AuthProvider } from './contexts/AuthContext'
 import { LanguageProvider } from './contexts/LanguageContext'
 import { CartProvider } from './contexts/CartContext'
+import { DialogProvider } from './contexts/DialogContext'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import AnimatedBackground from './components/AnimatedBackground'
@@ -18,11 +19,13 @@ import Treatment from './pages/Treatment'
 import NutrientAdvisory from './pages/NutrientAdvisory'
 import Chatbot from './pages/Chatbot'
 import Marketplace from './pages/Marketplace'
+import ProductDetail from './pages/ProductDetail'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
 import PestAlert from './pages/PestAlert'
 import MyReports from './pages/MyReports'
 import ReportDetails from './pages/ReportDetails'
+import AdminDashboard from './pages/AdminDashboard'
 
 function AppContent() {
   const location = useLocation()
@@ -41,6 +44,7 @@ function AppContent() {
               
               {/* Public Routes */}
               <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/nutrient-advisory" element={<NutrientAdvisory />} />
@@ -67,6 +71,9 @@ function AppContent() {
               <Route path="/reports/:id" element={
                 <ProtectedRoute><ReportDetails /></ProtectedRoute>
               } />
+              
+              {/* Hidden Admin Route - Only accessible via direct URL */}
+              <Route path="/admin-dashboard-2025" element={<AdminDashboard />} />
             </Routes>
           </PageTransition>
         </AnimatePresence>
@@ -82,7 +89,9 @@ function App() {
       <AuthProvider>
         <LanguageProvider>
           <CartProvider>
-            <AppContent />
+            <DialogProvider>
+              <AppContent />
+            </DialogProvider>
           </CartProvider>
         </LanguageProvider>
       </AuthProvider>

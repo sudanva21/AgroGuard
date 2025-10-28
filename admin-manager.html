@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgroGuard - Admin Manager</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 600px;
+      width: 100%;
+      padding: 40px;
+    }
+    h1 {
+      color: #10b981;
+      font-size: 28px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .subtitle {
+      color: #6b7280;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: 12px;
+      border: 2px solid #e5e7eb;
+    }
+    .section h2 {
+      font-size: 18px;
+      color: #1f2937;
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+    textarea {
+      min-height: 120px;
+      font-family: 'Courier New', monospace;
+      resize: vertical;
+    }
+    button {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      width: 100%;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #059669;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    .output {
+      background: #1f2937;
+      color: #10b981;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .success { color: #10b981; }
+    .error { color: #ef4444; }
+    .info { color: #3b82f6; }
+    .copy-btn {
+      background: #3b82f6;
+      margin-top: 10px;
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+    .copy-btn:hover {
+      background: #2563eb;
+    }
+    .instructions {
+      background: #fef3c7;
+      border: 2px solid #fbbf24;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #92400e;
+    }
+    .instructions strong {
+      color: #78350f;
+    }
+    .icon {
+      font-size: 32px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>
+      <span class="icon">🛡️</span>
+      Admin Manager
+    </h1>
+    <p class="subtitle">Quick tool to generate SQL for admin management</p>
+
+    <div class="instructions">
+      <strong>📋 How to use:</strong><br>
+      1. Enter admin email below<br>
+      2. Click "Generate SQL"<br>
+      3. Copy the SQL code<br>
+      4. Paste and run in Supabase SQL Editor
+    </div>
+
+    <!-- Add Admin Section -->
+    <div class="section">
+      <h2>➕ Add New Admin</h2>
+      <label for="addEmail">Admin Email Address</label>
+      <input 
+        type="email" 
+        id="addEmail" 
+        placeholder="admin@example.com"
+        value=""
+      />
+      <button onclick="generateAddSQL()">Generate Add Admin SQL</button>
+      <div id="addOutput" class="output" style="display:none;"></div>
+      <button id="copyAddBtn" class="copy-btn" style="display:none;" onclick="copySQL('addOutput')">📋 Copy SQL</button>
+    </div>
+
+    <!-- Remove Admin Section -->
+    <div class="section">
+      <h2>❌ Remove Admin</h2>
+      <label for="removeEmail">Admin Email to Remove</label>
+      <input 
+        type="email" 
+        id="removeEmail" 
+        placeholder="admin@example.com"
+      />
+      <button onclick="generateRemoveSQL()">Generate Remove Admin SQL</button>
+      <div id="removeOutput" class="output" style="display:none;"></div>
+      <button id="copyRemoveBtn" class="copy-btn" style="display:none;" onclick="copySQL('removeOutput')">📋 Copy SQL</button>
+    </div>
+
+    <!-- View Admins Section -->
+    <div class="section">
+      <h2>👀 View All Admins</h2>
+      <button onclick="generateViewSQL()">Generate View Admins SQL</button>
+      <div id="viewOutput" class="output" style="display:none;"></div>
+      <button id="copyViewBtn" class="copy-btn" style="display:none;" onclick="copySQL('viewOutput')">📋 Copy SQL</button>
+    </div>
+
+    <!-- Batch Add Section -->
+    <div class="section">
+      <h2>📦 Add Multiple Admins</h2>
+      <label for="batchEmails">Enter emails (one per line)</label>
+      <textarea 
+        id="batchEmails" 
+        placeholder="admin1@example.com&#10;admin2@example.com&#10;admin3@example.com"
+      ></textarea>
+      <button onclick="generateBatchSQL()">Generate Batch Add SQL</button>
+      <div id="batchOutput" class="output" style="display:none;"></div>
+      <button id="copyBatchBtn" class="copy-btn" style="display:none;" onclick="copySQL('batchOutput')">📋 Copy SQL</button>
+    </div>
+  </div>
+
+  <script>
+    const YOUR_EMAIL = 'sudanva@gmail.com'; // Your admin email
+
+    function generateAddSQL() {
+      const email = document.getElementById('addEmail').value.trim();
+      const output = document.getElementById('addOutput');
+      const copyBtn = document.getElementById('copyAddBtn');
+
+      if (!email || !validateEmail(email)) {
+        output.innerHTML = '<span class="error">❌ Please enter a valid email address</span>';
+        output.style.display = 'block';
+        copyBtn.style.display = 'none';
+        return;
+      }
+
+      const sql = `-- Add ${email} as admin
+INSERT INTO admin_users (email, created_by)
+VALUES ('${email}', '${YOUR_EMAIL}')
+ON CONFLICT (email) DO NOTHING;
+
+-- Verify addition
+SELECT * FROM admin_users WHERE email = '${email}';`;
+
+      output.innerHTML = `<span class="success">✅ SQL Generated Successfully!</span>\n\n${sql}`;
+      output.style.display = 'block';
+      copyBtn.style.display = 'block';
+    }
+
+    function generateRemoveSQL() {
+      const email = document.getElementById('removeEmail').value.trim();
+      const output = document.getElementById('removeOutput');
+      const copyBtn = document.getElementById('copyRemoveBtn');
+
+      if (!email || !validateEmail(email)) {
+        output.innerHTML = '<span class="error">❌ Please enter a valid email address</span>';
+        output.style.display = 'block';
+        copyBtn.style.display = 'none';
+        return;
+      }
+
+      if (email === YOUR_EMAIL) {
+        output.innerHTML = '<span class="error">⚠️ Warning: You cannot remove yourself as admin!</span>';
+        output.style.display = 'block';
+        copyBtn.style.display = 'none';
+        return;
+      }
+
+      const sql = `-- Remove ${email} from admins
+DELETE FROM admin_users WHERE email = '${email}';
+
+-- Verify removal
+SELECT * FROM admin_users WHERE email = '${email}';`;
+
+      output.innerHTML = `<span class="success">✅ SQL Generated Successfully!</span>\n\n${sql}`;
+      output.style.display = 'block';
+      copyBtn.style.display = 'block';
+    }
+
+    function generateViewSQL() {
+      const output = document.getElementById('viewOutput');
+      const copyBtn = document.getElementById('copyViewBtn');
+
+      const sql = `-- View all admin users
+SELECT 
+  id,
+  email,
+  created_by,
+  created_at
+FROM admin_users 
+ORDER BY created_at DESC;`;
+
+      output.innerHTML = `<span class="success">✅ SQL Generated Successfully!</span>\n\n${sql}`;
+      output.style.display = 'block';
+      copyBtn.style.display = 'block';
+    }
+
+    function generateBatchSQL() {
+      const emails = document.getElementById('batchEmails').value.trim();
+      const output = document.getElementById('batchOutput');
+      const copyBtn = document.getElementById('copyBatchBtn');
+
+      if (!emails) {
+        output.innerHTML = '<span class="error">❌ Please enter at least one email address</span>';
+        output.style.display = 'block';
+        copyBtn.style.display = 'none';
+        return;
+      }
+
+      const emailList = emails.split('\n').map(e => e.trim()).filter(e => e);
+      const invalidEmails = emailList.filter(e => !validateEmail(e));
+
+      if (invalidEmails.length > 0) {
+        output.innerHTML = `<span class="error">❌ Invalid emails found:</span>\n${invalidEmails.join('\n')}`;
+        output.style.display = 'block';
+        copyBtn.style.display = 'none';
+        return;
+      }
+
+      const values = emailList.map(email => `  ('${email}', '${YOUR_EMAIL}')`).join(',\n');
+      
+      const sql = `-- Add multiple admins at once
+INSERT INTO admin_users (email, created_by) VALUES
+${values}
+ON CONFLICT (email) DO NOTHING;
+
+-- Verify additions
+SELECT * FROM admin_users 
+WHERE email IN (${emailList.map(e => `'${e}'`).join(', ')})
+ORDER BY created_at DESC;`;
+
+      output.innerHTML = `<span class="success">✅ SQL Generated for ${emailList.length} admin(s)!</span>\n\n${sql}`;
+      output.style.display = 'block';
+      copyBtn.style.display = 'block';
+    }
+
+    function copySQL(outputId) {
+      const output = document.getElementById(outputId);
+      const text = output.innerText;
+      
+      // Extract just the SQL part (after the success message)
+      const sqlPart = text.split('\n\n').slice(1).join('\n\n');
+      
+      navigator.clipboard.writeText(sqlPart).then(() => {
+        const btn = event.target;
+        const originalText = btn.innerText;
+        btn.innerText = '✅ Copied!';
+        btn.style.background = '#059669';
+        
+        setTimeout(() => {
+          btn.innerText = originalText;
+          btn.style.background = '#3b82f6';
+        }, 2000);
+      });
+    }
+
+    function validateEmail(email) {
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return re.test(email);
+    }
+  </script>
+</body>
+</html>

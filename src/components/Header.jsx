@@ -65,15 +65,17 @@ const Header = () => {
 
           {/* Cart Icon, Language Selector & Auth Buttons */}
           <div className="hidden lg:flex items-center space-x-4">
-            {/* Cart Icon */}
-            <Link to="/cart" className="relative p-2 text-gray-700 hover:text-agro-green-600 transition">
-              <ShoppingCart className="w-6 h-6" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                  {cartCount}
-                </span>
-              )}
-            </Link>
+            {/* Cart Icon - Only for logged in users */}
+            {user && (
+              <Link to="/cart" className="relative p-2 text-gray-700 hover:text-agro-green-600 transition">
+                <ShoppingCart className="w-6 h-6" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+            )}
             
             <div className="relative group">
               <button className="flex items-center space-x-2 text-gray-700 hover:text-agro-green-600 transition">
@@ -132,14 +134,17 @@ const Header = () => {
 
           {/* Mobile Cart Icon & Menu Button */}
           <div className="lg:hidden flex items-center space-x-4">
-            <Link to="/cart" className="relative p-2 text-gray-700 hover:text-agro-green-600 transition">
-              <ShoppingCart className="w-6 h-6" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {cartCount}
-                </span>
-              )}
-            </Link>
+            {/* Cart Icon - Only for logged in users */}
+            {user && (
+              <Link to="/cart" className="relative p-2 text-gray-700 hover:text-agro-green-600 transition">
+                <ShoppingCart className="w-6 h-6" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+            )}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="text-gray-700 hover:text-agro-green-600"

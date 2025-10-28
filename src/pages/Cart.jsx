@@ -1,16 +1,45 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ShoppingCart, Trash2, Plus, Minus, ArrowRight, ShoppingBag } from 'lucide-react'
 import { useCart } from '../contexts/CartContext'
+import { useAuth } from '../contexts/AuthContext'
+import { useDialog } from '../contexts/DialogContext'
 import TranslatedText from '../components/TranslatedText'
 
 const Cart = () => {
   const { cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart()
+  const { user } = useAuth()
+  const { showAlert, showConfirm } = useDialog()
   const navigate = useNavigate()
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!user) {
+      showAlert({
+        title: 'Login Required',
+        message: 'Please login to view your cart and manage your items.',
+        type: 'warning',
+        onClose: () => navigate('/login')
+      })
+    }
+  }, [user, navigate, showAlert])
 
   const handleCheckout = () => {
     if (cartItems.length > 0) {
       navigate('/checkout')
+    }
+  }
+
+  const handleClearCart = async () => {
+    const confirmed = await showConfirm({
+      title: 'Clear Cart?',
+      message: 'Are you sure you want to remove all items from your cart? This action cannot be undone.',
+      type: 'warning',
+      confirmText: 'Yes, Clear Cart',
+      cancelText: 'Cancel'
+    })
+    if (confirmed) {
+      clearCart()
     }
   }
 
@@ -129,11 +158,7 @@ const Cart = () => {
 
               {/* Clear Cart Button */}
               <button
-                onClick={() => {
-                  if (window.confirm('Are you sure you want to clear your cart?')) {
-                    clearCart()
-                  }
-                }}
+                onClick={handleClearCart}
                 className="w-full py-3 text-red-600 hover:text-red-700 font-semibold hover:bg-red-50 rounded-lg transition"
               >
                 <TranslatedText>Clear Cart</TranslatedText>
