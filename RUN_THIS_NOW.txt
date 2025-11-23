@@ -1,0 +1,113 @@
+===============================================
+CRITICAL: RUN ONE OF THESE FIXES NOW
+===============================================
+
+ERROR: null value in column "email" violates not-null constraint
+
+YOU HAVE 3 OPTIONS (pick ONE):
+
+===============================================
+OPTION 1: TRY FIRST (Recommended)
+===============================================
+File: PERMANENT_FIX_EMAIL_CONSTRAINT.sql
+
+Steps:
+1. Go to Supabase Dashboard
+2. SQL Editor → New Query
+3. Copy ALL text from: PERMANENT_FIX_EMAIL_CONSTRAINT.sql
+4. Paste into SQL editor
+5. Click RUN
+
+This will:
+✓ Make email column allow empty strings (no more NULL constraint errors)
+✓ Fix the trigger function
+✓ Update existing data
+✓ Keep your existing profiles
+
+Wait for "Success" message.
+
+===============================================
+OPTION 2: IF OPTION 1 FAILS
+===============================================
+File: NUCLEAR_RESET_EMAIL_FIX.sql
+
+Steps:
+1. Go to Supabase Dashboard
+2. SQL Editor → New Query
+3. Copy ALL text from: NUCLEAR_RESET_EMAIL_FIX.sql
+4. Paste into SQL editor
+5. Click RUN
+
+⚠️  WARNING: This DELETES all profiles and rebuilds from scratch
+
+This will:
+✓ Destroy old problematic table
+✓ Create brand new table with ZERO NULL issues
+✓ Reset schema cache
+✓ All profiles will be recreated on next login
+
+Use this if:
+- Option 1 didn't work
+- You want a completely clean database
+- You don't need existing profile data
+
+===============================================
+AFTER RUNNING EITHER FIX
+===============================================
+
+1. Close browser completely
+2. Clear all browser cache (Ctrl+Shift+Delete)
+3. Delete all cookies for supabase domain
+4. Reopen browser
+5. Go to your app
+6. Sign OUT completely
+7. Sign UP with a NEW email address (critical!)
+8. Open Profile page
+9. Check browser console - NO errors should appear
+10. Try editing profile and saving
+
+===============================================
+WHAT GOT FIXED
+===============================================
+
+BEFORE (broken):
+├─ email VARCHAR(255) NOT NULL ← causes constraint error
+├─ trigger function didn't handle NULL ← error
+└─ RLS policies blocked users ← 406/400 errors
+
+AFTER (fixed):
+├─ email VARCHAR(255) DEFAULT '' ← empty string, never NULL
+├─ trigger function uses COALESCE ← always has value
+├─ RLS policies allow access ← no more 406/400
+└─ CHECK constraints ← extra safety
+
+===============================================
+IF STILL NOT WORKING
+===============================================
+
+Issue: Still getting "null value in column email" error
+→ Run NUCLEAR_RESET_EMAIL_FIX.sql (it's the nuclear option)
+→ Make absolutely sure you copied the ENTIRE file
+→ Make absolutely sure you clicked RUN
+
+Issue: Getting different error after fix
+→ Open browser console (F12)
+→ Screenshot the error
+→ Check Supabase dashboard for that error type
+
+Issue: Can sign up but profile page shows errors
+→ Make sure you're using a NEW email (not old one)
+→ Clear all browser cache completely
+→ Try in incognito/private window
+
+===============================================
+DO NOT DO
+===============================================
+
+✗ Don't partially copy - copy ENTIRE file
+✗ Don't run multiple times in a row
+✗ Don't try with same email address twice
+✗ Don't ignore the "RUN" button
+✗ Don't forget to clear cache and restart browser
+
+===============================================

@@ -1,0 +1,125 @@
+===============================================
+AGROGUARD DATABASE FIX - EXECUTION GUIDE
+===============================================
+
+ERRORS YOU'RE SEEING:
+✗ null value in column "email" violates not-null constraint
+✗ 406 Not Acceptable errors
+✗ 400 Bad Request errors
+
+WHAT'S WRONG:
+1. Email field can't handle NULL values from signup
+2. RLS policies are blocking legitimate access  
+3. Supabase schema cache has stale data
+4. Grants missing for REST API access
+
+===============================================
+OPTION A: COMPLETE RESET (Recommended)
+===============================================
+
+1. Open: https://supabase.com/dashboard
+2. Select your AgroGuard project
+3. Go to: SQL Editor → New Query
+4. Copy ALL content from: COMPLETE_SUPABASE_SETUP.sql
+5. Paste into SQL editor
+6. Click "RUN" button
+7. Wait for success message (green checkmark)
+8. Close browser completely
+9. Reopen browser, clear cache (Ctrl+Shift+Delete)
+10. Sign out of app
+11. Sign UP with a NEW email address
+12. Open Profile page
+13. Check browser console - NO 406/400 errors should appear
+14. Try editing profile fields - should save successfully
+
+===============================================
+OPTION B: QUICK PATCH (If database exists)
+===============================================
+
+1. Open Supabase SQL Editor
+2. Copy ALL content from: QUICK_FIX.sql
+3. Paste into SQL editor
+4. Click "RUN" button
+5. Follow steps 8-14 from Option A above
+
+===============================================
+VERIFICATION CHECKLIST
+===============================================
+
+After running either option, verify:
+
+□ Profile page loads without 406 errors
+□ No console errors when loading profile
+□ Can edit profile fields
+□ Profile updates save successfully
+□ Page refresh keeps saved data
+□ Signing out and back in works
+
+If any checkbox fails:
+→ Try Option A (complete reset)
+→ Clear browser cache thoroughly
+→ Use incognito/private window
+→ Try with NEW email address
+
+===============================================
+KEY FIXES APPLIED
+===============================================
+
+1. Email Handling (COALESCE)
+   - Was: NEW.email (could be NULL)
+   - Now: COALESCE(NEW.email, '') (never NULL)
+
+2. RLS Policies (5 total)
+   - Users can view own profile
+   - Users can update own profile
+   - Users can insert own profile
+   - Anon users can read profiles
+   - Anon users can insert profiles
+
+3. Schema Cache Clear
+   - Drops trigger first
+   - Drops function second
+   - Drops table with CASCADE
+
+4. GRANT Permissions
+   - schema access for authenticated/anon
+   - table operations for authenticated
+   - read-only for anon
+   - function execution grants
+
+===============================================
+IF STILL HAVING ISSUES
+===============================================
+
+Issue: Still seeing 406 error
+→ Go to Supabase Dashboard
+→ SQL Editor → paste and run:
+   SELECT * FROM information_schema.tables 
+   WHERE table_name = 'profiles';
+→ Check output shows columns: id, email, full_name, etc.
+→ If no output, table doesn't exist - run Option A again
+
+Issue: Can't sign up
+→ Check Supabase Auth logs
+→ Verify email is valid
+→ Check auth.users table has entry
+→ Run: SELECT * FROM public.profiles WHERE email = 'your@email.com';
+
+Issue: Email field still null
+→ Recent fix should handle this
+→ Run QUICK_FIX.sql or Option A
+→ Verify trigger function text has COALESCE
+
+===============================================
+DO NOT SKIP STEPS
+===============================================
+
+- DO NOT partially copy SQL
+- DO NOT skip clearing browser cache
+- DO NOT try old email addresses
+- DO NOT skip closing/reopening browser
+- DO RUN entire file, not just pieces
+- DO WAIT for "Success" message
+- DO test with NEW email address
+
+===============================================

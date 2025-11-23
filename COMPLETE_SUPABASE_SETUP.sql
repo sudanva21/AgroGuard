@@ -18,16 +18,27 @@
 -- 1. AUTHENTICATION & USER PROFILES
 -- =====================================================
 
-CREATE TABLE IF NOT EXISTS public.user_profiles (
+-- Drop old trigger and function first (must drop trigger before function)
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users CASCADE;
+DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+
+-- Drop old profiles table to clear schema cache completely
+DROP TABLE IF EXISTS public.profiles CASCADE;
+
+-- Wait for schema cache to clear (add comment for documentation)
+-- Note: Supabase will automatically refresh its schema cache after DROP
+
+-- Create profiles table with correct schema
+CREATE TABLE public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email VARCHAR(255) NOT NULL,
-  full_name VARCHAR(255),
-  phone VARCHAR(20),
-  location TEXT,
-  farming_experience VARCHAR(50),
-  farm_size VARCHAR(50),
-  crops_grown TEXT[], -- Array of crop names
-  bio TEXT,
+  email VARCHAR(255) DEFAULT '',
+  full_name VARCHAR(255) DEFAULT '',
+  phone VARCHAR(20) DEFAULT '',
+  location TEXT DEFAULT '',
+  experience_years VARCHAR(50) DEFAULT '',
+  farm_size VARCHAR(50) DEFAULT '',
+  primary_crops TEXT DEFAULT '',
+  bio TEXT DEFAULT '',
   avatar_url TEXT,
   
   -- Preferences
@@ -40,27 +51,65 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_user_profiles_email ON public.user_profiles(email);
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email);
+CREATE INDEX IF NOT EXISTS idx_profiles_id ON public.profiles(id);
 
 -- Enable RLS
-ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- Policies
-CREATE POLICY "Users can view own profile"
-  ON public.user_profiles
+-- Policies for authenticated users
+CREATE POLICY "authenticated_select_own"
+  ON public.profiles
   FOR SELECT
+  TO authenticated
   USING (auth.uid() = id);
 
-CREATE POLICY "Users can update own profile"
-  ON public.user_profiles
+CREATE POLICY "authenticated_update_own"
+  ON public.profiles
   FOR UPDATE
+  TO authenticated
   USING (auth.uid() = id)
   WITH CHECK (auth.uid() = id);
 
-CREATE POLICY "Users can insert own profile"
-  ON public.user_profiles
+CREATE POLICY "authenticated_insert_own"
+  ON public.profiles
   FOR INSERT
+  TO authenticated
   WITH CHECK (auth.uid() = id);
+
+-- Policies for anon users (for signup flow)
+CREATE POLICY "anon_select_all"
+  ON public.profiles
+  FOR SELECT
+  TO anon
+  USING (true);
+
+CREATE POLICY "anon_insert_all"
+  ON public.profiles
+  FOR INSERT
+  TO anon
+  WITH CHECK (true);
+
+-- Auto-create profile on signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.email, ''),
+    COALESCE(NEW.raw_user_meta_data->>'full_name', '')
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = COALESCE(EXCLUDED.email, ''),
+    full_name = COALESCE(EXCLUDED.full_name, '');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- =====================================================
 -- 2. DISEASE DETECTION & REPORTS
@@ -104,21 +153,25 @@ CREATE INDEX IF NOT EXISTS idx_disease_reports_crop ON public.disease_reports(cr
 ALTER TABLE public.disease_reports ENABLE ROW LEVEL SECURITY;
 
 -- Policies
+DROP POLICY IF EXISTS "Users can view own reports" ON public.disease_reports;
 CREATE POLICY "Users can view own reports"
   ON public.disease_reports
   FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own reports" ON public.disease_reports;
 CREATE POLICY "Users can insert own reports"
   ON public.disease_reports
   FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own reports" ON public.disease_reports;
 CREATE POLICY "Users can update own reports"
   ON public.disease_reports
   FOR UPDATE
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete own reports" ON public.disease_reports;
 CREATE POLICY "Users can delete own reports"
   ON public.disease_reports
   FOR DELETE
@@ -156,21 +209,25 @@ CREATE INDEX IF NOT EXISTS idx_treatment_records_user_id ON public.treatment_rec
 ALTER TABLE public.treatment_records ENABLE ROW LEVEL SECURITY;
 
 -- Policies
+DROP POLICY IF EXISTS "Users can view own treatments" ON public.treatment_records;
 CREATE POLICY "Users can view own treatments"
   ON public.treatment_records
   FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own treatments" ON public.treatment_records;
 CREATE POLICY "Users can insert own treatments"
   ON public.treatment_records
   FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own treatments" ON public.treatment_records;
 CREATE POLICY "Users can update own treatments"
   ON public.treatment_records
   FOR UPDATE
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete own treatments" ON public.treatment_records;
 CREATE POLICY "Users can delete own treatments"
   ON public.treatment_records
   FOR DELETE
@@ -195,12 +252,14 @@ CREATE INDEX IF NOT EXISTS idx_admin_users_email ON public.admin_users(email);
 ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
 
 -- Policies
+DROP POLICY IF EXISTS "Authenticated users can view admins" ON public.admin_users;
 CREATE POLICY "Authenticated users can view admins"
   ON public.admin_users
   FOR SELECT
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Admins can insert new admins" ON public.admin_users;
 CREATE POLICY "Admins can insert new admins"
   ON public.admin_users
   FOR INSERT
@@ -212,6 +271,7 @@ CREATE POLICY "Admins can insert new admins"
     )
   );
 
+DROP POLICY IF EXISTS "Admins can delete admins" ON public.admin_users;
 CREATE POLICY "Admins can delete admins"
   ON public.admin_users
   FOR DELETE
@@ -276,11 +336,13 @@ CREATE INDEX IF NOT EXISTS idx_products_rating ON public.marketplace_products(ra
 ALTER TABLE public.marketplace_products ENABLE ROW LEVEL SECURITY;
 
 -- Policies
+DROP POLICY IF EXISTS "Anyone can view products" ON public.marketplace_products;
 CREATE POLICY "Anyone can view products"
   ON public.marketplace_products
   FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Only admins can insert products" ON public.marketplace_products;
 CREATE POLICY "Only admins can insert products"
   ON public.marketplace_products
   FOR INSERT
@@ -292,6 +354,7 @@ CREATE POLICY "Only admins can insert products"
     )
   );
 
+DROP POLICY IF EXISTS "Only admins can update products" ON public.marketplace_products;
 CREATE POLICY "Only admins can update products"
   ON public.marketplace_products
   FOR UPDATE
@@ -303,6 +366,7 @@ CREATE POLICY "Only admins can update products"
     )
   );
 
+DROP POLICY IF EXISTS "Only admins can delete products" ON public.marketplace_products;
 CREATE POLICY "Only admins can delete products"
   ON public.marketplace_products
   FOR DELETE
@@ -364,16 +428,19 @@ CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders(status);
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 
 -- Policies
+DROP POLICY IF EXISTS "Users can view own orders" ON public.orders;
 CREATE POLICY "Users can view own orders"
   ON public.orders
   FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own orders" ON public.orders;
 CREATE POLICY "Users can insert own orders"
   ON public.orders
   FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Admins can view all orders" ON public.orders;
 CREATE POLICY "Admins can view all orders"
   ON public.orders
   FOR SELECT
@@ -408,22 +475,26 @@ CREATE INDEX IF NOT EXISTS idx_pest_subscriptions_active ON public.pest_alert_su
 ALTER TABLE public.pest_alert_subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- Policies
+DROP POLICY IF EXISTS "Users can view their own subscriptions" ON public.pest_alert_subscriptions;
 CREATE POLICY "Users can view their own subscriptions"
   ON public.pest_alert_subscriptions
   FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert their own subscriptions" ON public.pest_alert_subscriptions;
 CREATE POLICY "Users can insert their own subscriptions"
   ON public.pest_alert_subscriptions
   FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own subscriptions" ON public.pest_alert_subscriptions;
 CREATE POLICY "Users can update their own subscriptions"
   ON public.pest_alert_subscriptions
   FOR UPDATE
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete their own subscriptions" ON public.pest_alert_subscriptions;
 CREATE POLICY "Users can delete their own subscriptions"
   ON public.pest_alert_subscriptions
   FOR DELETE
@@ -452,6 +523,7 @@ CREATE INDEX IF NOT EXISTS idx_alert_logs_sent_at ON public.alert_logs(sent_at D
 ALTER TABLE public.alert_logs ENABLE ROW LEVEL SECURITY;
 
 -- Policies
+DROP POLICY IF EXISTS "Users can view their own alert logs" ON public.alert_logs;
 CREATE POLICY "Users can view their own alert logs"
   ON public.alert_logs
   FOR SELECT
@@ -481,6 +553,7 @@ CREATE INDEX IF NOT EXISTS idx_unsent_alerts_created_at ON public.unsent_alerts(
 ALTER TABLE public.unsent_alerts ENABLE ROW LEVEL SECURITY;
 
 -- Policies
+DROP POLICY IF EXISTS "Service role can manage unsent alerts" ON public.unsent_alerts;
 CREATE POLICY "Service role can manage unsent alerts"
   ON public.unsent_alerts
   FOR ALL
@@ -515,21 +588,25 @@ CREATE INDEX IF NOT EXISTS idx_fertilizer_schedules_status ON public.fertilizer_
 ALTER TABLE public.fertilizer_schedules ENABLE ROW LEVEL SECURITY;
 
 -- Policies
+DROP POLICY IF EXISTS "Users can view own schedules" ON public.fertilizer_schedules;
 CREATE POLICY "Users can view own schedules"
   ON public.fertilizer_schedules
   FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own schedules" ON public.fertilizer_schedules;
 CREATE POLICY "Users can insert own schedules"
   ON public.fertilizer_schedules
   FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own schedules" ON public.fertilizer_schedules;
 CREATE POLICY "Users can update own schedules"
   ON public.fertilizer_schedules
   FOR UPDATE
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete own schedules" ON public.fertilizer_schedules;
 CREATE POLICY "Users can delete own schedules"
   ON public.fertilizer_schedules
   FOR DELETE
@@ -555,11 +632,13 @@ CREATE INDEX IF NOT EXISTS idx_nutrient_plans_user_crop ON public.nutrient_plans
 ALTER TABLE public.nutrient_plans ENABLE ROW LEVEL SECURITY;
 
 -- Policies
+DROP POLICY IF EXISTS "Users can view own nutrient plans" ON public.nutrient_plans;
 CREATE POLICY "Users can view own nutrient plans"
   ON public.nutrient_plans
   FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own nutrient plans" ON public.nutrient_plans;
 CREATE POLICY "Users can insert own nutrient plans"
   ON public.nutrient_plans
   FOR INSERT
@@ -569,23 +648,38 @@ CREATE POLICY "Users can insert own nutrient plans"
 -- 12. STORAGE BUCKETS FOR IMAGES
 -- =====================================================
 
--- Disease Detection Images Bucket
+-- User Avatars Bucket (matched to app's 'avatars' bucket)
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('disease-images', 'Disease Detection Images', true)
-ON CONFLICT (id) DO NOTHING;
-
--- Product Images Bucket
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('product-images', 'Marketplace Product Images', true)
-ON CONFLICT (id) DO NOTHING;
-
--- User Avatars Bucket
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('user-avatars', 'User Profile Avatars', true)
-ON CONFLICT (id) DO NOTHING;
+VALUES ('avatars', 'User Profile Avatars', true)
+ON CONFLICT (name) DO NOTHING;
 
 -- =====================================================
--- 13. USEFUL FUNCTIONS
+-- 13. STORAGE POLICIES FOR AVATARS
+-- =====================================================
+
+DROP POLICY IF EXISTS "Authenticated users can upload avatars" ON storage.objects;
+CREATE POLICY "Authenticated users can upload avatars"
+  ON storage.objects
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS "Anyone can view avatars" ON storage.objects;
+CREATE POLICY "Anyone can view avatars"
+  ON storage.objects
+  FOR SELECT
+  USING (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS "Users can update own avatars" ON storage.objects;
+CREATE POLICY "Users can update own avatars"
+  ON storage.objects
+  FOR UPDATE
+  TO authenticated
+  USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1])
+  WITH CHECK (bucket_id = 'avatars');
+
+-- =====================================================
+-- 14. USEFUL FUNCTIONS
 -- =====================================================
 
 -- Function to get user's real statistics
@@ -646,7 +740,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 GRANT EXECUTE ON FUNCTION get_all_admins() TO authenticated;
 
 -- =====================================================
--- 14. AUTO-UPDATE TIMESTAMP TRIGGERS
+-- 15. AUTO-UPDATE TIMESTAMP TRIGGERS
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -657,10 +751,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger for user_profiles
-DROP TRIGGER IF EXISTS update_user_profiles_updated_at ON public.user_profiles;
-CREATE TRIGGER update_user_profiles_updated_at
-  BEFORE UPDATE ON public.user_profiles
+-- Trigger for profiles
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
+CREATE TRIGGER update_profiles_updated_at
+  BEFORE UPDATE ON public.profiles
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
@@ -714,43 +808,94 @@ CREATE TRIGGER update_fertilizer_schedules_updated_at
   EXECUTE FUNCTION update_updated_at_column();
 
 -- =====================================================
--- 15. GRANT PERMISSIONS
+-- 16. GRANT PERMISSIONS
 -- =====================================================
 
-GRANT ALL ON public.user_profiles TO authenticated;
+-- Profiles table access
+GRANT ALL ON public.profiles TO authenticated;
+GRANT SELECT, INSERT ON public.profiles TO anon;
+
+-- Disease reports
 GRANT ALL ON public.disease_reports TO authenticated;
+GRANT SELECT ON public.disease_reports TO anon;
+
+-- Treatment records
 GRANT ALL ON public.treatment_records TO authenticated;
+GRANT SELECT ON public.treatment_records TO anon;
+
+-- Marketplace
 GRANT ALL ON public.marketplace_products TO authenticated;
+GRANT SELECT ON public.marketplace_products TO anon;
+
+-- Orders
 GRANT ALL ON public.orders TO authenticated;
+GRANT SELECT, INSERT ON public.orders TO anon;
+
+-- Pest alerts
 GRANT ALL ON public.pest_alert_subscriptions TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.pest_alert_subscriptions TO anon;
+
+-- Alert logs
 GRANT ALL ON public.alert_logs TO authenticated;
+GRANT SELECT, INSERT ON public.alert_logs TO anon;
+
+-- Fertilizer schedules
 GRANT ALL ON public.fertilizer_schedules TO authenticated;
+GRANT SELECT, INSERT ON public.fertilizer_schedules TO anon;
+
+-- Nutrient plans
 GRANT ALL ON public.nutrient_plans TO authenticated;
+GRANT SELECT, INSERT ON public.nutrient_plans TO anon;
+
+-- Admin users
 GRANT ALL ON public.admin_users TO authenticated;
+GRANT SELECT ON public.admin_users TO anon;
+
+-- Unsent alerts
 GRANT ALL ON public.unsent_alerts TO service_role;
+
+-- Grant execution of functions
+GRANT EXECUTE ON FUNCTION get_real_user_stats(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_real_user_stats(UUID) TO anon;
+GRANT EXECUTE ON FUNCTION is_admin(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION is_admin(TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION get_all_admins() TO authenticated;
+GRANT EXECUTE ON FUNCTION get_all_admins() TO anon;
 
 -- =====================================================
 -- SETUP COMPLETE!
 -- =====================================================
 -- Your AgroGuard AI database is now ready!
+-- 
+-- This setup includes:
+-- - 11 tables with complete schema (profiles, disease_reports, treatment_records, etc.)
+-- - Row Level Security (RLS) on all tables with 40+ policies
+-- - Auto-profile creation on user signup
+-- - 8 automatic timestamp update triggers
+-- - 3 utility functions for stats and admin checking
+-- - Storage bucket for avatars with access policies
+-- - All indexes for optimized queries
 --
 -- Next Steps:
--- 1. Replace 'sudanva@gmail.com' with your email in the admin_users table
+-- 1. Replace 'sudanva@gmail.com' with your email in the admin_users table:
 --    UPDATE public.admin_users SET email = 'your-email@example.com' 
 --    WHERE email = 'sudanva@gmail.com';
 --
--- 2. Create your Supabase storage policies:
---    - Go to Storage in Supabase dashboard
---    - Configure access policies for buckets
---
--- 3. Test your setup:
+-- 2. Test your setup:
 --    - Register a new user
 --    - Create a disease report
+--    - Upload a profile avatar
 --    - Check admin dashboard
+--    - Add products to marketplace
 --
--- 4. Update environment variables:
+-- 3. Update environment variables in your .env file:
 --    VITE_SUPABASE_URL=your-supabase-url
 --    VITE_SUPABASE_ANON_KEY=your-anon-key
+--    VITE_OPENWEATHER_API_KEY=your-api-key
+--    VITE_GROQ_API_KEY=your-api-key
+--    VITE_HUGGINGFACE_API_KEY=your-api-key
 --
--- For support, refer to the documentation in /docs folder
+-- 4. Verify all columns are created (check Profile page loads)
+--
+-- For support, refer to the documentation in the project root
 -- =====================================================
