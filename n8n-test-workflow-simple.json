@@ -1,0 +1,50 @@
+{
+  "name": "TEST - Disease Detection Echo",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "disease-detection-test",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger-test",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "disease-detection-test"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ \n  {\n    \"status\": \"success\",\n    \"message\": \"N8N webhook is working!\",\n    \"receivedData\": $json.body,\n    \"disease\": \"Test Disease\",\n    \"scientificName\": \"Testus workingus\",\n    \"severity\": \"None\",\n    \"confidence\": \"100%\",\n    \"description\": \"This is a test response to verify N8N webhook is functioning correctly.\",\n    \"symptoms\": [\"Webhook responding\", \"N8N active\", \"Configuration correct\"],\n    \"causes\": [\"Proper setup\", \"Workflow activated\"],\n    \"urgency\": \"Test successful\",\n    \"analyzedAt\": $now,\n    \"source\": \"N8N-Test-Workflow\"\n  }\n}}",
+        "options": {}
+      },
+      "id": "respond-test",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [460, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-11-28T12:00:00.000Z",
+  "versionId": "1"
+}

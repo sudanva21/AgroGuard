@@ -1,0 +1,208 @@
+{
+  "name": "Disease Detection - AgroGuard AI (Connection Fix)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "disease-detection",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "disease-detection"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\n\nreturn {\n  crop: body.crop || 'Unknown',\n  imageBase64: body.image,\n  mimeType: body.imageType || 'image/jpeg',\n  timestamp: body.timestamp\n};"
+      },
+      "id": "extract-data",
+      "name": "Extract Request Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=YOUR_GOOGLE_API_KEY",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"Describe in detail what you see in this crop plant image. Identify visible symptoms, abnormalities, leaf conditions, spots, wilting, fungal growth, pests, or diseases.\"\n        },\n        {\n          \"inlineData\": {\n            \"mimeType\": $json.mimeType,\n            \"data\": $json.imageBase64\n          }\n        }\n      ]\n    }\n  ]\n} }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "gemini-image-analysis",
+      "name": "Gemini Image Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const gemini = $input.first().json;\nlet description = '';\ntry {\n  if (gemini && gemini.candidates && gemini.candidates.length > 0) {\n    description = gemini.candidates[0].content.parts[0].text || '';\n  }\n} catch (err) {\n  description = '';\n}\n\nconst crop = $('Extract Request Data').first().json.crop || 'Unknown';\n\nreturn { imageDescription: description, crop: crop };"
+      },
+      "id": "parse-gemini",
+      "name": "Parse Image Description",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"\" +\n        \"You are an expert plant pathologist. Based on the following image description for a \" + $json.crop + \" plant, detect disease and return strictly in JSON only:\\n\\n\" +\n        \"Image Description: \" + $json.imageDescription + \"\\n\\n\" +\n        \"Required JSON format:\\n{\\n  \\\"disease\\\": \\\"Disease name or 'Healthy Plant' or 'Unable to determine'\\\",\\n  \\\"scientificName\\\": \\\"Scientific name or 'N/A'\\\",\\n  \\\"severity\\\": \\\"Low/Medium/High/None\\\",\\n  \\\"confidence\\\": \\\"Confidence percentage\\\",\\n  \\\"description\\\": \\\"Short expert analysis\\\",\\n  \\\"symptoms\\\": [\\\"Symptom 1\\\", \\\"Symptom 2\\\"],\\n  \\\"causes\\\": [\\\"Cause 1\\\", \\\"Cause 2\\\"],\\n  \\\"urgency\\\": \\\"Recommended action\\\"\\n}\\n\" \n    }\n  ],\n  \"temperature\": 0.3,\n  \"max_tokens\": 2000\n} }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "groq-disease-analysis",
+      "name": "Groq Disease Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1160,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const resp = $input.first().json;\nif (!resp || !resp.choices || !resp.choices[0] || !resp.choices[0].message) {\n  throw new Error('Invalid response from Groq');\n}\nconst text = resp.choices[0].message.content;\nconst match = text.match(/\\{[\\s\\S]*\\}/);\nif (!match) throw new Error('Invalid JSON from Groq');\nconst data = JSON.parse(match[0]);\nreturn {\n  disease: data.disease,\n  scientificName: data.scientificName,\n  severity: data.severity,\n  confidence: data.confidence,\n  description: data.description,\n  symptoms: data.symptoms,\n  causes: data.causes,\n  urgency: data.urgency,\n  analyzedAt: new Date().toISOString(),\n  source: 'AgroGuard-Gemini'\n};"
+      },
+      "id": "parse-groq-response",
+      "name": "Parse Disease Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1380,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Request Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Request Data": {
+      "main": [
+        [
+          {
+            "node": "Gemini Image Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Image Analysis": {
+      "main": [
+        [
+          {
+            "node": "Parse Image Description",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Image Description": {
+      "main": [
+        [
+          {
+            "node": "Groq Disease Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Disease Analysis": {
+      "main": [
+        [
+          {
+            "node": "Parse Disease Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Disease Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

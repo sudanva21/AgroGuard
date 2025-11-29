@@ -17,7 +17,7 @@ const Footer = () => {
               <h3 className="text-xl font-bold">AgroGuard AI</h3>
             </div>
             <p className="text-agro-green-100 text-sm mb-4">
-              <TranslatedText>Empowering Indian farmers with AI-powered crop disease detection and smart farming solutions.</TranslatedText>
+              <TranslatedText>Where Indian soil meets intelligent care.</TranslatedText>
             </p>
             <div className="flex space-x-3">
               <a href="#" className="bg-agro-green-800 p-2 rounded-full hover:bg-agro-green-700 transition">
@@ -85,7 +85,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-agro-green-800 mt-8 pt-6 text-center text-agro-green-200 text-sm">
-          <p>&copy; 2024 AgroGuard AI. All rights reserved. | Made with ❤️ for Indian Farmers</p>
+          <p>&copy; 2025 AgroGuard AI — Where Indian soil meets intelligent care. All rights reserved.</p>
         </div>
       </div>
     </footer>

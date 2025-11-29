@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Upload, Camera, MessageSquare, Search, AlertCircle, CheckCircle, Info, Loader2, Mic, MicOff, X, Image as ImageIcon, Save, FileText } from 'lucide-react'
-import { detectDisease, detectDiseaseFromImage } from '../services/agricultureService'
+import { detectDisease } from '../services/agricultureService'
+import { detectDiseaseViaN8N } from '../services/n8nDiseaseService'
 import { saveReport } from '../services/reportService'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -202,9 +203,9 @@ const DiseaseDetection = () => {
 
     setIsAnalyzing(true)
     try {
-      // Automatic AI vision analysis
-      const detectionResult = await detectDiseaseFromImage(uploadedImages[0], selectedCrop)
+      const detectionResult = await detectDiseaseViaN8N(uploadedImages[0], selectedCrop)
       setResult(detectionResult)
+      showToast('Analysis complete! Results powered by N8N workflow.', 'success')
     } catch (error) {
       showToast(error.message || 'Failed to analyze image. Please try again.', 'error')
     } finally {

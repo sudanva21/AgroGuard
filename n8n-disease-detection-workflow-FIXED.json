@@ -1,0 +1,283 @@
+{
+  "name": "Disease Detection - AgroGuard AI (FIXED)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "disease-detection",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "disease-detection"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\n\nreturn {\n  crop: body.crop || 'Unknown',\n  imageBase64: body.image,\n  imageType: body.imageType || 'image/jpeg',\n  timestamp: body.timestamp\n};"
+      },
+      "id": "extract-data",
+      "name": "Extract Request Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const base64Data = $input.first().json.imageBase64;\nconst imageType = $input.first().json.imageType || 'image/jpeg';\n\nconst binaryData = Buffer.from(base64Data, 'base64');\n\nconst newItem = {\n  json: {\n    crop: $input.first().json.crop,\n    timestamp: $input.first().json.timestamp\n  },\n  binary: {\n    data: {\n      data: binaryData.toString('base64'),\n      mimeType: imageType,\n      fileExtension: imageType.split('/')[1] || 'jpg',\n      fileName: 'image.' + (imageType.split('/')[1] || 'jpg')\n    }\n  }\n};\n\nreturn newItem;"
+      },
+      "id": "convert-to-binary",
+      "name": "Convert Base64 to Binary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.HUGGINGFACE_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "huggingface-analysis",
+      "name": "HuggingFace Image Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.error}}",
+              "operation": "isEmpty"
+            }
+          ]
+        }
+      },
+      "id": "check-hf-success",
+      "name": "Check HF Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const hfResponse = $input.first().json;\nlet imageDescription = 'plant image';\n\nif (Array.isArray(hfResponse) && hfResponse.length > 0) {\n  imageDescription = hfResponse[0].generated_text || hfResponse[0].caption || 'plant image';\n} else if (hfResponse.generated_text) {\n  imageDescription = hfResponse.generated_text;\n}\n\nconst crop = $('Convert Base64 to Binary').first().json.crop;\n\nreturn {\n  imageDescription: imageDescription,\n  crop: crop\n};"
+      },
+      "id": "parse-hf-response",
+      "name": "Parse HF Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const crop = $('Convert Base64 to Binary').first().json.crop;\n\nreturn {\n  imageDescription: 'A crop plant with visible symptoms',\n  crop: crop\n};"
+      },
+      "id": "fallback-description",
+      "name": "Fallback Description",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 400]
+    },
+    {
+      "parameters": {
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.GROQ_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"You are an expert plant pathologist. Based on this image description of a {{$json.crop}} plant, identify any diseases:\\n\\nImage Description: '{{$json.imageDescription}}'\\n\\nAnalyze carefully and provide your response in JSON format:\\n{\\n  \\\"disease\\\": \\\"Disease name or 'Healthy Plant' or 'Unable to determine from image'\\\",\\n  \\\"scientificName\\\": \\\"Scientific name or 'N/A'\\\",\\n  \\\"severity\\\": \\\"None/Low/Medium/High\\\",\\n  \\\"confidence\\\": \\\"XX%\\\",\\n  \\\"description\\\": \\\"Your expert analysis\\\",\\n  \\\"symptoms\\\": [\\\"Symptom 1\\\", \\\"Symptom 2\\\", \\\"Symptom 3\\\", \\\"Symptom 4\\\"],\\n  \\\"causes\\\": [\\\"Cause 1\\\", \\\"Cause 2\\\", \\\"Cause 3\\\", \\\"Cause 4\\\"],\\n  \\\"urgency\\\": \\\"Recommended action\\\"\\n}\\n\\nIf you cannot determine the disease from the description, indicate this honestly in the response.\"\n    }\n  ],\n  \"temperature\": 0.3,\n  \"max_tokens\": 2000\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "groq-disease-analysis",
+      "name": "Groq Disease Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const groqResponse = $input.first().json;\nconst messageContent = groqResponse.choices[0].message.content;\n\nconst jsonMatch = messageContent.match(/\\{[\\s\\S]*\\}/);\nif (!jsonMatch) {\n  throw new Error('Invalid JSON response from AI');\n}\n\nconst diseaseData = JSON.parse(jsonMatch[0]);\n\nreturn {\n  disease: diseaseData.disease,\n  scientificName: diseaseData.scientificName,\n  severity: diseaseData.severity,\n  confidence: diseaseData.confidence,\n  description: diseaseData.description,\n  symptoms: diseaseData.symptoms,\n  causes: diseaseData.causes,\n  urgency: diseaseData.urgency,\n  analyzedAt: new Date().toISOString(),\n  source: 'N8N-Workflow'\n};"
+      },
+      "id": "parse-groq-response",
+      "name": "Parse Disease Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"error\": \"Failed to analyze image\", \"message\": \"{{$json.error || 'Unknown error'}}\", \"suggestion\": \"Please try again or use symptom-based detection\"}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1780, 500]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Request Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Request Data": {
+      "main": [
+        [
+          {
+            "node": "Convert Base64 to Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert Base64 to Binary": {
+      "main": [
+        [
+          {
+            "node": "HuggingFace Image Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HuggingFace Image Analysis": {
+      "main": [
+        [
+          {
+            "node": "Check HF Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check HF Success": {
+      "main": [
+        [
+          {
+            "node": "Parse HF Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback Description",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse HF Response": {
+      "main": [
+        [
+          {
+            "node": "Groq Disease Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback Description": {
+      "main": [
+        [
+          {
+            "node": "Groq Disease Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Disease Analysis": {
+      "main": [
+        [
+          {
+            "node": "Parse Disease Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Disease Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-11-28T13:00:00.000Z",
+  "versionId": "2"
+}
