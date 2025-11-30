@@ -96,7 +96,7 @@ const NutrientAdvisory = () => {
                   onChange={(e) => setSelectedCrop(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agro-green-500 focus:border-transparent"
                 >
-                  <option value=""><TranslatedText>Choose...</TranslatedText></option>
+                  <option value=""><TranslatedText as={React.Fragment}>Choose...</TranslatedText></option>
                   {crops.map((crop) => (
                     <option key={crop} value={crop}>{crop}</option>
                   ))}
@@ -112,7 +112,7 @@ const NutrientAdvisory = () => {
                   onChange={(e) => setGrowthStage(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agro-green-500 focus:border-transparent"
                 >
-                  <option value=""><TranslatedText>Choose...</TranslatedText></option>
+                  <option value=""><TranslatedText as={React.Fragment}>Choose...</TranslatedText></option>
                   {growthStages.map((stage) => (
                     <option key={stage} value={stage}>{stage}</option>
                   ))}
@@ -128,7 +128,7 @@ const NutrientAdvisory = () => {
                   onChange={(e) => setSoilType(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agro-green-500 focus:border-transparent"
                 >
-                  <option value=""><TranslatedText>Choose...</TranslatedText></option>
+                  <option value=""><TranslatedText as={React.Fragment}>Choose...</TranslatedText></option>
                   {soilTypes.map((type) => (
                     <option key={type} value={type}>{type}</option>
                   ))}

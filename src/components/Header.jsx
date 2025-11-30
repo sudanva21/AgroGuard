@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Menu, X, Sprout, Languages, LogOut, User, Globe, ShoppingCart } from 'lucide-react'
+import { Menu, X, Sprout, Languages, LogOut, User, Globe, ShoppingCart, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../contexts/CartContext'
 import { useLanguage } from '../contexts/LanguageContext'
@@ -9,7 +9,7 @@ import TranslatedText from './TranslatedText'
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const { user, signOut } = useAuth()
+  const { user, signOut, isAdmin } = useAuth()
   const { getCartCount } = useCart()
   const { currentLanguage, changeLanguage, isTranslating } = useLanguage()
   const navigate = useNavigate()
@@ -59,6 +59,14 @@ const Header = () => {
                 <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                   <Link to="/pest-alert" className="text-gray-700 hover:text-agro-green-600 font-medium transition"><TranslatedText>Pest Alerts</TranslatedText></Link>
                 </motion.div>
+                {isAdmin && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                    <Link to="/admin-dashboard-2025" className="flex items-center space-x-1 px-3 py-2 bg-gradient-to-r from-agro-green-600 to-agro-green-700 text-white font-semibold rounded-lg hover:shadow-lg transition">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Admin</span>
+                    </Link>
+                  </motion.div>
+                )}
               </>
             )}
           </nav>
@@ -167,6 +175,12 @@ const Header = () => {
                   <Link to="/disease-detection" className="text-gray-700 hover:text-agro-green-600 font-medium py-2" onClick={() => setIsMenuOpen(false)}><TranslatedText>Disease Detection</TranslatedText></Link>
                   <Link to="/treatment" className="text-gray-700 hover:text-agro-green-600 font-medium py-2" onClick={() => setIsMenuOpen(false)}><TranslatedText>Treatment</TranslatedText></Link>
                   <Link to="/pest-alert" className="text-gray-700 hover:text-agro-green-600 font-medium py-2" onClick={() => setIsMenuOpen(false)}><TranslatedText>Pest Alerts</TranslatedText></Link>
+                  {isAdmin && (
+                    <Link to="/admin-dashboard-2025" className="flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-agro-green-600 to-agro-green-700 text-white font-semibold rounded-lg hover:shadow-lg transition" onClick={() => setIsMenuOpen(false)}>
+                      <ShieldCheck className="w-5 h-5" />
+                      <span>Admin Dashboard</span>
+                    </Link>
+                  )}
                   <Link to="/chatbot" className="btn-primary text-center mt-2" onClick={() => setIsMenuOpen(false)}><TranslatedText>Ask AI Assistant</TranslatedText></Link>
                   
                   <div className="pt-3 border-t">

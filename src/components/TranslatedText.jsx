@@ -43,6 +43,10 @@ const TranslatedText = ({ children, className, as: Component = 'span' }) => {
     }
   }, [children, currentLangCode, translate])
 
+  if (Component === React.Fragment || Component === 'text') {
+    return loading && isTranslating ? children : translatedText
+  }
+
   return (
     <Component className={className}>
       {loading && isTranslating ? (
